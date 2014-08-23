@@ -1,29 +1,32 @@
-""" parmap: a simple parallel map implementation based on the multiprocessing package.
-    This was built to overcome the limitations of Pool.map in my specific contect; namely:
-     * input chunking - I wanted to process things in a stream;
-     * the requirement of being able to pickle the processor function. With parmap you can use whatever you want.
+"""
+ This module contains a simple parallel map implementation based on the
+ multiprocessing package. This was built mainly to overcome two limitations
+ of the implementation supplied with multiprocessing (Pool.map):
 
+ * the requirement of being able to pickle the processor function. With parmap
+   you can use whatever you want;
+ * input chunking - I wanted to stream records to worker processes and have
+   control of what's going on.
 """
 from multiprocessing import Queue, Process
-
-__author__ = 'giuliano'
 
 TOMBSTONE = '7PE&YeDu5#ybgTf0rJgk9u!'
 MAX_QUEUE_SIZE = 100
 
 def parmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
-    """
-    Runs a parallel map operation over a source iterator.
 
-    :param source: iterator over which to run the parallel map.
+    """ Runs a parallel map operation over a source sequence.
+
+    :param source: a sequence over which to run the parallel map.
     :param fun: function to apply to each element.
-    :param workers: parallelism degree.
+    :param workers: number of parallel workers to use.
     :param max_queue_size: the maximum size of (workers + 1) internal queues.
 
-    :return: an iterator which gets lazily populated with results as they become available.
+    :return: an iterator which gets lazily populated with results as they become
+             available.
     """
-    output_queue = Queue(max_queue_size)
     input_queue = Queue(max_queue_size)
+    output_queue = Queue(max_queue_size)
 
     for i in range(0, workers):
         Process(target=__worker__, args=(input_queue, output_queue, fun)).start()
@@ -57,10 +60,10 @@ def __worker__(input_queue, output_queue, fun):
 
 def __result__(output_queue, n_workers):
 
-    poison_pills = 0
-    while poison_pills != n_workers:
+    tombstones = 0
+    while tombstones != n_workers:
         result = output_queue.get()
         if result == TOMBSTONE:
-            poison_pills += 1
+            tombstones += 1
         else:
             yield result
