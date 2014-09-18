@@ -1,6 +1,6 @@
 import nose
 import time
-from parmap import parmap
+from parmap import parmap, parflatmap
 
 
 def process(x):
@@ -16,6 +16,11 @@ def io_bound(x):
     return process(x)
 
 
+def process_flat(x, emit):
+    for i in range(0, 100):
+        emit(i)
+
+
 def reference(count):
     return list(process(x) for x in range(0, count))
 
@@ -28,6 +33,12 @@ def test_small():
 def test_big():
     result = set(parmap(range(0, 800), io_bound, 500))
     assert result == set(reference(800))
+
+
+def test_parflat():
+    result = [i for i in parflatmap([1, 2, 3, 4], process_flat, 4)].sort()
+    ref = ([range(0, 100)] * 4).sort()
+    assert result == ref
 
 
 def test_heterogeneous():

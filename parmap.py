@@ -9,43 +9,62 @@
    control of what's going on.
 """
 from multiprocessing import Queue, Process
+import sys
 
 TOMBSTONE = '7PE&YeDu5#ybgTf0rJgk9u!'
 MAX_QUEUE_SIZE = 100
 
-def parmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
 
-    """ Runs a parallel map operation over a source sequence.
+def parmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
+    """Runs a parallel map operation over a source sequence.
 
     :param source: a sequence over which to run the parallel map.
-    :param fun: function, or array of functions, to apply to elements. In case it's an array, it
-                should be equal to the number of workers.
+
+    :param fun: a function which will be applied once for each
+                element. The function takes a single parameter.
+
     :param workers: number of parallel workers to use.
+
     :param max_queue_size: the maximum size of (workers + 1) internal queues.
 
     :return: an iterator which gets lazily populated with results as they become
              available.
+
     """
-    funs = __check_expand__(fun, workers)
+    return parflatmap(source, __mapper__(fun), workers, max_queue_size)
+
+
+def parflatmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
+    """Runs a flat parallel map over a source sequence. The main
+    difference of flatmap with respect to a 'regular' parallel map is
+    that in flatmap the function 'fun' is supplied an extra parameter
+    -- an emitter -- which 'fun' can call to output as many records as
+    it wants in response to a single record being input.
+
+    :param source: a sequence over which to run the parallel flat map.
+
+    :param fun: a function which will be applied once for each
+           element. The function takes two parameters - one for the
+           element, another for an emitter function.
+
+    :param workers: number of parallel workers to use.
+
+    :param max_queue_size: the maximum size of (workers + 1) internal
+                           queues.
+
+    :return: an iterator which gets lazily populated with results as
+             they become available.
+
+    """
     input_queue = Queue(max_queue_size)
     output_queue = Queue(max_queue_size)
 
-    for fun in funs:
+    for i in range(0, workers):
         Process(target=__worker__, args=(input_queue, output_queue, fun)).start()
 
     Process(target=__pusher__, args=(source, input_queue, workers)).start()
 
     return __result__(output_queue, workers)
-
-
-def __check_expand__(funs, workers):
-
-    try:
-        if (len(funs) != workers):
-            raise Exception("The number of worker functions has to match the number of workers.")
-    except TypeError:
-        # Assumes it's a function.
-        return [funs for i in range(0, workers)]
 
 
 def __pusher__(input, input_queue, n_workers):
@@ -62,12 +81,21 @@ def __worker__(input_queue, output_queue, fun):
     try:
         record = input_queue.get()
         while record != TOMBSTONE:
-            output_queue.put(fun(record))
+            fun(record, lambda x: output_queue.put(x))
+            sys.stderr.flush()
             record = input_queue.get()
     finally:
         # Bubbles up exceptions but reports death or
         # __result__ will never terminate.
+        sys.stderr.flush()
         output_queue.put(TOMBSTONE)
+
+    sys.stderr.flush()
+
+
+def __mapper__(fun):
+
+    return lambda record, emit: emit(fun(record))
 
 
 def __result__(output_queue, n_workers):
