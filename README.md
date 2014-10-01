@@ -6,10 +6,10 @@ multiprocessing package. For example, to sum 1 to all elements in the
 array [1,2,3,4,5] using two workers, you'd write:
 
 ```python
-parmap([1,2,3,4], lambda x: x + 1, 2)
+parmap([1, 2, 3, 4], fun=lambda x: x + 1, workers=2)
 ```
 
-parmap supports bound functions:
+parmap supports bound functions, so that the following is valid:
 
 ```python
 def query_server(client, querystring):

@@ -1,12 +1,7 @@
-"""
- This module contains a simple parallel map implementation based on the
- multiprocessing package. This was built mainly to overcome two limitations
- of the implementation supplied with multiprocessing (Pool.map):
-
- * the requirement of being able to pickle the processor function. With parmap
-   you can use whatever you want;
- * input chunking - I wanted to stream records to worker processes and have
-   control of what's going on.
+"""This module contains a simple parallel map implementation based on
+ the multiprocessing package. This was built mainly because Pool.map
+ did not allow bounded functions, and because I wanted a simple
+ implementation I could easily tweak.
 """
 from multiprocessing import Queue, Process
 import sys
