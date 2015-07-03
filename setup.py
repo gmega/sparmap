@@ -12,5 +12,6 @@ setup(
         'multiprocessing >= 2.6.2.1'
     ],
     tests_require=['nose'],
-    url=['https://github.com/gmega/parmap'],
+    url=['https://github.com/gmega/sparmap'],
+    download_url='https://github.com/gmega/sparmap/archive/1.0.3.tar.gz'
 )

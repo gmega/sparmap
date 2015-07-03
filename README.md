@@ -1,12 +1,15 @@
-parmap [![Build Status](https://travis-ci.org/gmega/parmap.svg)](https://travis-ci.org/gmega/parmap)
+sparmap [![Build Status](https://travis-ci.org/gmega/parmap.svg)](https://travis-ci.org/gmega/parmap)
 ======
 
-Very simple implementation of a parallel map for Python based on the
+A **S**imple **PAR**allel **MAP** implementation for Python based on the
 multiprocessing package. For example, to sum 1 to all elements in the
-array `[1, 2, 3, 4, 5]` using two workers, you'd write:
+array `[1, 2, 3, 4, 5]` using two processes in parallel, and printing the 
+output on the terminal, you'd write:
 
 ```python
-parmap([1, 2, 3, 4], fun=lambda x: x + 1, workers=2)
+from sparmap import parmap
+for result in parmap([1, 2, 3, 4], fun=lambda x: x + 1, workers=2):
+    print result
 ```
 
 Streaming
@@ -19,10 +22,6 @@ for result in parmap(very_long_list, fun=expensive_computation, workers=8):
     print result
 ```
 
-you will start seeing results as soon as the computations inside of the 
-workers complete.
- 
-Bound Functions
----------------
-parmap will happily
+you will start seeing results as soon as the first computation inside  
+ any of the workers completes.
 
