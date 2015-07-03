@@ -1,4 +1,4 @@
-sparmap [![Build Status](https://travis-ci.org/gmega/parmap.svg)](https://travis-ci.org/gmega/parmap)
+sparmap [![Build Status](https://travis-ci.org/gmega/sparmap.svg)](https://travis-ci.org/gmega/parmap)
 ======
 
 A **S**imple **PAR**allel **MAP** implementation for Python based on the
