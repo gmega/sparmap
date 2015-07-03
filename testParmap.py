@@ -1,4 +1,3 @@
-import nose
 import time
 from parmap import parmap, parflatmap
 
@@ -9,8 +8,8 @@ def process(x):
 
 def io_bound(x):
     '''
-    io_bound simulates a io_bound computation, which parmap was initially
-    designed to handle.
+    io_bound simulates a io_bound (or otherwise longer-running) computation,
+    which parmap was initially designed to handle.
     '''
     time.sleep(1)
     return process(x)
@@ -36,11 +35,10 @@ def test_big():
 
 
 def test_parflat():
-    result = [i for i in parflatmap([1, 2, 3, 4], process_flat, 4)].sort()
-    ref = ([range(0, 100)] * 4).sort()
+    result = [i for i in parflatmap([1, 2, 3, 4], process_flat, 4)]
+    result.sort()
+    ref = range(0, 100) * 4
+    ref.sort()
+
+    print len(result), len(ref)
     assert result == ref
-
-
-def test_heterogeneous():
-    pass # have to figure out a good way to test this.
-

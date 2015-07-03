@@ -1,16 +1,16 @@
 """This module contains a simple parallel map implementation based on
- the multiprocessing package. This was built mainly because Pool.map
- did not allow bounded functions, and because I wanted a simple
- implementation I could easily tweak.
+ the multiprocessing package. It allows the use of bounded functions
+ as processing functions, and maintains memory usage under control by
+ using bounded queues internally.
 """
 from multiprocessing import Queue, Process
 import sys
 
 TOMBSTONE = '7PE&YeDu5#ybgTf0rJgk9u!'
-MAX_QUEUE_SIZE = 100
+_MAX_QUEUE_SIZE = 100
 
 
-def parmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
+def parmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE):
     """Runs a parallel map operation over a source sequence.
 
     :param source: a sequence over which to run the parallel map.
@@ -26,10 +26,10 @@ def parmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
              available.
 
     """
-    return parflatmap(source, __mapper__(fun), workers, max_queue_size)
+    return parflatmap(source, _mapper(fun), workers, max_queue_size)
 
 
-def parflatmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
+def parflatmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE):
     """Runs a flat parallel map over a source sequence. The main
     difference of flatmap with respect to a 'regular' parallel map is
     that in flatmap the function 'fun' is supplied an extra parameter
@@ -54,16 +54,21 @@ def parflatmap(source, fun, workers, max_queue_size=MAX_QUEUE_SIZE):
     input_queue = Queue(max_queue_size)
     output_queue = Queue(max_queue_size)
 
-    for i in range(0, workers):
-        Process(target=__worker__, args=(input_queue, output_queue, fun)).start()
+    # Workers (process data).
+    processes = [_started(Process(target=_worker, args=(input_queue, output_queue, fun)))for i in range(0, workers)]
 
-    Process(target=__pusher__, args=(source, input_queue, workers)).start()
+    # Pusher (pushes data items into work queue).
+    pusher = _started(Process(target=_pusher, args=(source, input_queue, workers)))
 
-    return __result__(output_queue, workers)
+    return _result(output_queue, processes, pusher)
 
 
-def __pusher__(input, input_queue, n_workers):
+def _started(process):
+    process.start()
+    return process
 
+
+def _pusher(input, input_queue, n_workers):
     for task in input:
         input_queue.put(task)
 
@@ -71,8 +76,7 @@ def __pusher__(input, input_queue, n_workers):
         input_queue.put(TOMBSTONE)
 
 
-def __worker__(input_queue, output_queue, fun):
-
+def _worker(input_queue, output_queue, fun):
     try:
         record = input_queue.get()
         while record != TOMBSTONE:
@@ -88,17 +92,23 @@ def __worker__(input_queue, output_queue, fun):
     sys.stderr.flush()
 
 
-def __mapper__(fun):
-
+def _mapper(fun):
     return lambda record, emit: emit(fun(record))
 
 
-def __result__(output_queue, n_workers):
-
+def _result(output_queue, workers, pusher):
     tombstones = 0
+    n_workers = len(workers)
     while tombstones != n_workers:
         result = output_queue.get()
         if result == TOMBSTONE:
             tombstones += 1
         else:
             yield result
+
+    # Waits for pusher to die.
+    pusher.join()
+
+    # Waits for children to die.
+    for worker in workers:
+        worker.join()
