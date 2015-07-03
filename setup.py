@@ -13,7 +13,7 @@ setup(
     ],
     tests_require=['nose'],
     url=['https://github.com/gmega/sparmap'],
-    download_url='https://github.com/gmega/sparmap/archive/1.0.3.tar.gz',
+    download_url='https://github.com/gmega/sparmap/archive/1.0.4.tar.gz',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
