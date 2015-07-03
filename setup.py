@@ -7,7 +7,7 @@ setup(
     author='Giuliano Mega',
     author_email='mega@spaziodati.eu',
     py_modules=['sparmap'],
-    license='LICENSE.txt',
+    license='Apache License 2.0',
     install_requires=[
         'multiprocessing >= 2.6.2.1'
     ],
