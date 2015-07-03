@@ -8,7 +8,7 @@ output on the terminal, you'd write:
 
 ```python
 from sparmap import parmap
-for result in parmap([1, 2, 3, 4], fun=lambda x: x + 1, workers=2):
+for result in parmap([1, 2, 3, 4, 5], fun=lambda x: x + 1, workers=2):
     print result
 ```
 
