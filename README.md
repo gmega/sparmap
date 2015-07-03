@@ -1,27 +1,28 @@
 parmap [![Build Status](https://travis-ci.org/gmega/parmap.svg)](https://travis-ci.org/gmega/parmap)
 ======
 
-
-
 Very simple implementation of a parallel map for Python based on the
 multiprocessing package. For example, to sum 1 to all elements in the
-array [1,2,3,4,5] using two workers, you'd write:
+array `[1, 2, 3, 4, 5]` using two workers, you'd write:
 
 ```python
 parmap([1, 2, 3, 4], fun=lambda x: x + 1, workers=2)
 ```
 
-parmap supports bound functions, so that the following is valid:
+Streaming
+---------
+parmap uses a bounded queue internally, and streams results immediately
+as they become available. This means that in a situation like:
 
 ```python
-def query_server(client, querystring):
-    
-    def __query_server__(x):
-        return client.query(querystring % x)
-
-    return __query_server__
-
-parmap(["apples", "oranges", "bananas"], query_server("SELECT * FROM fruit WHERE type = '%s'"), 5)
-
+for result in parmap(very_long_list, fun=expensive_computation, workers=8):
+    print result
 ```
+
+you will start seeing results as soon as the computations inside of the 
+workers complete.
+ 
+Bound Functions
+---------------
+parmap will happily
 

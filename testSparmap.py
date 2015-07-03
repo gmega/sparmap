@@ -1,5 +1,5 @@
 import time
-from parmap import parmap, parflatmap
+from sparmap import parmap, parflatmap
 
 
 def process(x):
