@@ -1,5 +1,7 @@
-parmap
+parmap [![Build Status](https://travis-ci.org/gmega/parmap.svg)](https://travis-ci.org/gmega/parmap)
 ======
+
+
 
 Very simple implementation of a parallel map for Python based on the
 multiprocessing package. For example, to sum 1 to all elements in the
