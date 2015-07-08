@@ -1,8 +1,10 @@
 from distutils.core import setup
 
+VERSION = '1.1.0'
+
 setup(
     name='sparmap',
-    version='1.1.0',
+    version=VERSION,
     description='A Simple PARallel MAP implementation for Python.',
     author='Giuliano Mega',
     author_email='mega@spaziodati.eu',
@@ -13,7 +15,7 @@ setup(
     ],
     tests_require=['nose'],
     url=['https://github.com/gmega/sparmap'],
-    download_url='https://github.com/gmega/sparmap/archive/1.0.4.tar.gz',
+    download_url='https://github.com/gmega/sparmap/archive/%s.tar.gz' % VERSION,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
