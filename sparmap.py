@@ -114,9 +114,9 @@ def _worker(input_queue, output_queue, fun, signal):
             record = input_queue.get()
 
     except Exception:
-        ex = sys.exc_info()[0]
+        ex_type, value = sys.exc_info()[:2]
         if signal.exceptions:
-            output_queue.put((record, ex))
+            output_queue.put((record, ex_type, value))
 
     finally:
         if signal.termination:
