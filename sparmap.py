@@ -6,6 +6,7 @@
 from multiprocessing import Queue, Process
 from collections import namedtuple
 import sys
+import traceback
 
 TOMBSTONE = '7PE&YeDu5#ybgTf0rJgk9u!'
 _MAX_QUEUE_SIZE = 100
@@ -88,20 +89,21 @@ def parflatmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE, signal=SIGN
 
 
 def _started(process):
+    process.daemon = 1
     process.start()
     return process
 
 
 def _pusher(input, input_queue, n_workers):
-    for task in input:
-        input_queue.put(task)
-
-    for i in range(0, n_workers):
-        input_queue.put(TOMBSTONE)
+    try:
+        for task in input:
+            input_queue.put(task)
+    finally:
+        for i in range(0, n_workers):
+            input_queue.put(TOMBSTONE)
 
 
 def _worker(input_queue, output_queue, fun, signal):
-    print signal
     emit = lambda x: output_queue.put(x)
     record = 'if you see this, it is a bug in sparmap'
     try:
@@ -111,14 +113,21 @@ def _worker(input_queue, output_queue, fun, signal):
             sys.stderr.flush()
             record = input_queue.get()
 
-        if signal.termination:
-            fun(TOMBSTONE, emit)
-
-    except Exception as ex:
+    except Exception:
+        ex = sys.exc_info()[0]
         if signal.exceptions:
             output_queue.put((record, ex))
 
     finally:
+        if signal.termination:
+            try:
+                # tries to dispatch tombstone...
+                fun(TOMBSTONE, emit)
+            except:
+                # ... and if it fails we don't care. Just
+                # log the thing.
+                traceback.print_exc()
+
         # Bubbles up exceptions but reports death or
         # __result__ will never terminate.
         sys.stderr.flush()

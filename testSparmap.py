@@ -1,5 +1,5 @@
 import time
-from sparmap import parmap, parflatmap, SIGNAL_ALL, TOMBSTONE
+from sparmap import parmap, parflatmap, SIGNAL_ALL, TOMBSTONE, Signal
 
 
 def process(x):
@@ -28,6 +28,11 @@ def io_bound(x):
     '''
     time.sleep(1)
     return process(x)
+
+
+def hanged(x):
+    time.sleep(3600)
+    return x
 
 
 def process_flat(x, emit):
@@ -61,12 +66,14 @@ def test_parflat():
 
 def test_signals_termination():
     result = list(parmap(range(0, 100), process_with_termination, 5, signal=SIGNAL_ALL))
+    print result
     assert len([x for x in result if x == 'CLEANUP']) == 5
     assert set(x for x in result if x != 'CLEANUP') == set(reference(100))
 
 
 def test_signals_exceptions():
-    result = list(parmap(range(0, 100), faulty, 5, signal=SIGNAL_ALL))
+    # Disable termination signaling or the process will die with an exception.
+    result = list(parmap(range(0, 100), faulty, 5, signal=Signal(False, True)))
     result.sort()
     print result
     assert len([x for x in result if isinstance(x, tuple)]) == 5
@@ -74,3 +81,8 @@ def test_signals_exceptions():
     # can't assert which elements as we never know which ones are missing, we just know
     # the number we expect to have been processed successfully.
     assert len([x for x in result if not isinstance(x, tuple)]) == 20
+
+
+def test_does_not_hang_on_termination():
+    # Will cause the build to timeout on hanging.
+    parmap(range(0, 100), hanged, 5, signal=SIGNAL_ALL)
