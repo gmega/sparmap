@@ -4,13 +4,35 @@
  using bounded queues internally.
 """
 from multiprocessing import Queue, Process
+from collections import namedtuple
 import sys
 
 TOMBSTONE = '7PE&YeDu5#ybgTf0rJgk9u!'
 _MAX_QUEUE_SIZE = 100
 
+_Signal = namedtuple('Signal', ['termination', 'exceptions'])
 
-def parmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE):
+
+class Signal(_Signal):
+    """Controls the signaling behavior of sparmap.
+
+    If termination is set to True, workers will receive sparmap.TOMBSTONE
+    when there is no more work to be done. Otherwise they will be simply
+    shut down.
+
+    If exceptions is set to True, sparmap will put place a tuple containing the
+    (input element, exception generated) in the results whenever some input causes
+    a worker to crash with an exception. Otherwise, such exceptions will simply
+    cause the worker to die and generate no other apparent behavior to clients.
+    """
+    pass
+
+
+SIGNAL_ALL = Signal(True, True)
+SIGNAL_NONE = Signal(False, False)
+
+
+def parmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE, signal=SIGNAL_NONE):
     """Runs a parallel map operation over a source sequence.
 
     :param source: a sequence over which to run the parallel map.
@@ -26,10 +48,10 @@ def parmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE):
              available.
 
     """
-    return parflatmap(source, _mapper(fun), workers, max_queue_size)
+    return parflatmap(source, _mapper(fun), workers, max_queue_size, signal)
 
 
-def parflatmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE):
+def parflatmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE, signal=SIGNAL_NONE):
     """Runs a flat parallel map over a source sequence. The main
     difference of flatmap with respect to a 'regular' parallel map is
     that in flatmap the function 'fun' is supplied an extra parameter
@@ -55,7 +77,9 @@ def parflatmap(source, fun, workers, max_queue_size=_MAX_QUEUE_SIZE):
     output_queue = Queue(max_queue_size)
 
     # Workers (process data).
-    processes = [_started(Process(target=_worker, args=(input_queue, output_queue, fun)))for i in range(0, workers)]
+    processes = [_started(
+        Process(target=_worker, args=(input_queue, output_queue, fun, signal))
+    ) for i in range(0, workers)]
 
     # Pusher (pushes data items into work queue).
     pusher = _started(Process(target=_pusher, args=(source, input_queue, workers)))
@@ -76,13 +100,24 @@ def _pusher(input, input_queue, n_workers):
         input_queue.put(TOMBSTONE)
 
 
-def _worker(input_queue, output_queue, fun):
+def _worker(input_queue, output_queue, fun, signal):
+    print signal
+    emit = lambda x: output_queue.put(x)
+    record = 'if you see this, it is a bug in sparmap'
     try:
         record = input_queue.get()
         while record != TOMBSTONE:
-            fun(record, lambda x: output_queue.put(x))
+            fun(record, emit)
             sys.stderr.flush()
             record = input_queue.get()
+
+        if signal.termination:
+            fun(TOMBSTONE, emit)
+
+    except Exception as ex:
+        if signal.exceptions:
+            output_queue.put((record, ex))
+
     finally:
         # Bubbles up exceptions but reports death or
         # __result__ will never terminate.

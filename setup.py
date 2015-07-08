@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='sparmap',
-    version='1.0.4',
+    version='1.1.0',
     description='A Simple PARallel MAP implementation for Python.',
     author='Giuliano Mega',
     author_email='mega@spaziodati.eu',

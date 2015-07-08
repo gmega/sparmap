@@ -1,9 +1,24 @@
 import time
-from sparmap import parmap, parflatmap
+from sparmap import parmap, parflatmap, SIGNAL_ALL, TOMBSTONE
 
 
 def process(x):
     return x + 1
+
+
+def process_with_termination(x):
+    if x == TOMBSTONE:
+        return 'CLEANUP'
+
+    return process(x)
+
+
+def faulty(x, lives=[1, 2, 3, 4, 5]):
+    lives.pop()
+    if not lives:
+        raise Exception("Ran out of lives!")
+
+    return process(x)
 
 
 def io_bound(x):
@@ -42,3 +57,20 @@ def test_parflat():
 
     print len(result), len(ref)
     assert result == ref
+
+
+def test_signals_termination():
+    result = list(parmap(range(0, 100), process_with_termination, 5, signal=SIGNAL_ALL))
+    assert len([x for x in result if x == 'CLEANUP']) == 5
+    assert set(x for x in result if x != 'CLEANUP') == set(reference(100))
+
+
+def test_signals_exceptions():
+    result = list(parmap(range(0, 100), faulty, 5, signal=SIGNAL_ALL))
+    result.sort()
+    print result
+    assert len([x for x in result if isinstance(x, tuple)]) == 5
+
+    # can't assert which elements as we never know which ones are missing, we just know
+    # the number we expect to have been processed successfully.
+    assert len([x for x in result if not isinstance(x, tuple)]) == 20
