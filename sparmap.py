@@ -150,7 +150,9 @@ def _result(output_queue, workers, pusher):
         else:
             yield result
 
-    # Waits for pusher to die.
+    # There are no more workers alive, no sense
+    # in having a pusher.
+    pusher.terminate()
     pusher.join()
 
     # Waits for children to die.

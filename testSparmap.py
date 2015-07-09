@@ -73,7 +73,8 @@ def test_signals_termination():
 
 def test_signals_exceptions():
     # Disable termination signaling or the process will die with an exception.
-    result = list(parmap(range(0, 100), faulty, 5, signal=Signal(False, True)))
+    # Sets a large number of inputs so that the pusher blocks on the input queue.
+    result = list(parmap(range(0, 100000), faulty, 5, signal=Signal(False, True)))
     result.sort()
     print result
     assert len([x for x in result if isinstance(x, tuple)]) == 5
